@@ -958,6 +958,104 @@
                 font-size: 0.7rem;
             }
         }
+/* Mobile Navigation */
+.nav-mobile {
+    display: none;
+    padding: 1rem;
+    border-top: 1px solid var(--border);
+    width: 100%;
+    box-sizing: border-box;
+    background: var(--background);
+}
+
+.nav-mobile.active {
+    display: block;
+}
+
+.nav-mobile-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+.nav-mobile .nav-link {
+    font-size: 1rem;
+    color: var(--muted-foreground);
+    text-decoration: none;
+    transition: var(--transition);
+    padding: 0.5rem 1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+    text-align: left;
+}
+
+.nav-mobile .nav-link:hover {
+    color: var(--foreground);
+}
+
+.nav-mobile-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+}
+
+.nav-mobile-buttons .btn {
+    width: 100%;
+    justify-content: center;
+    font-size: 0.875rem;
+}
+
+/* Responsive Design Adjustments */
+@media (max-width: 767px) {
+    .mobile-menu-btn {
+        display: block;
+    }
+    
+    .nav-desktop {
+        display: none;
+    }
+    
+    .nav-mobile.active {
+        display: block;
+    }
+    
+    .nav-mobile .nav-link {
+        font-size: 0.95rem;
+        padding: 0.5rem;
+    }
+    
+    .nav-mobile-buttons .btn {
+        font-size: 0.85rem;
+        padding: 0 1rem;
+        height: 2rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .nav-mobile {
+        padding: 0.75rem;
+    }
+    
+    .nav-mobile .nav-link {
+        font-size: 0.9rem;
+        padding: 0.4rem 0.75rem;
+    }
+    
+    .nav-mobile-buttons {
+        padding: 0.4rem 0.75rem;
+    }
+    
+    .nav-mobile-buttons .btn {
+        font-size: 0.8rem;
+        height: 1.8rem;
+    }
+}
     </style>
 </head>
 <body>
@@ -996,18 +1094,17 @@
   </div>
 
   <!-- Mobile Navigation -->
-  <div class="nav-mobile" id="mobile-nav" style="display: none;">
+<div class="nav-mobile" id="mobile-nav">
     <nav class="nav-mobile-content">
-      <a href="#features" class="nav-link">Features</a>
-      <a href="#about" class="nav-link">About</a>
-      <a href="#contact" class="nav-link">Contact</a>
-      <div class="nav-mobile-buttons">
-        <button class="btn btn-outline btn-sm">Sign In</button>
-        <button class="btn btn-primary btn-sm">Get Started</button>
-      </div>
+        <a href="#features" class="nav-link">Features</a>
+        <a href="#about" class="nav-link">About</a>
+        <a href="#contact" class="nav-link">Contact</a>
+        <div class="nav-mobile-buttons">
+            <button class="btn btn-outline btn-sm">Sign In</button>
+            <button class="btn btn-primary btn-sm">Get Started</button>
+        </div>
     </nav>
-  </div>
-</header>
+</div></header>
 
 
     <!-- Hero Section -->
@@ -1423,179 +1520,204 @@
     </section>
 
     <script>
-        // Mobile menu functionality
-        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
-        const mobileNav = document.getElementById('mobile-nav');
-        const menuIcon = document.getElementById('menu-icon');
-        const closeIcon = document.getElementById('close-icon');
+        // Initialize Firebase (optional, uncomment and add your config if using Firebase)
+// import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
+// import { getFirestore, collection, addDoc } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
+/*
+const firebaseConfig = {
+    apiKey: "your-api-key",
+    authDomain: "your-auth-domain",
+    projectId: "your-project-id",
+    storageBucket: "your-storage-bucket",
+    messagingSenderId: "your-messaging-sender-id",
+    appId: "your-app-id"
+};
 
-        let isMenuOpen = false;
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+*/
 
-        mobileMenuBtn.addEventListener('click', () => {
-            isMenuOpen = !isMenuOpen;
-            
-            if (isMenuOpen) {
-                mobileNav.classList.add('active');
-                menuIcon.style.display = 'none';
-                closeIcon.style.display = 'block';
-            } else {
-                mobileNav.classList.remove('active');
-                menuIcon.style.display = 'block';
-                closeIcon.style.display = 'none';
-            }
-        });
+// Mobile menu functionality
+const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+const mobileNav = document.getElementById('mobile-nav');
+const menuIcon = document.getElementById('menu-icon');
+const closeIcon = document.getElementById('close-icon');
+let isMenuOpen = false;
 
-        // Close mobile menu when clicking on navigation links
-        const mobileNavLinks = mobileNav.querySelectorAll('.nav-link');
-        mobileNavLinks.forEach(link => {
-            link.addEventListener('click', () => {
-                isMenuOpen = false;
-                mobileNav.classList.remove('active');
-                menuIcon.style.display = 'block';
-                closeIcon.style.display = 'none';
+function toggleMobileMenu() {
+    isMenuOpen = !isMenuOpen;
+    mobileNav.classList.toggle('active', isMenuOpen);
+    menuIcon.style.display = isMenuOpen ? 'none' : 'block';
+    closeIcon.style.display = isMenuOpen ? 'block' : 'none';
+    mobileMenuBtn.setAttribute('aria-expanded', isMenuOpen);
+}
+
+mobileMenuBtn.addEventListener('click', toggleMobileMenu);
+
+// Close mobile menu when clicking navigation links
+mobileNav.querySelectorAll('.nav-link').forEach(link => {
+    link.addEventListener('click', () => {
+        isMenuOpen = false;
+        mobileNav.classList.remove('active');
+        menuIcon.style.display = 'block';
+        closeIcon.style.display = 'none';
+        mobileMenuBtn.setAttribute('aria-expanded', 'false');
+    });
+});
+
+// Close mobile menu on window resize to desktop
+window.addEventListener('resize', () => {
+    if (window.innerWidth >= 768 && isMenuOpen) {
+        isMenuOpen = false;
+        mobileNav.classList.remove('active');
+        menuIcon.style.display = 'block';
+        closeIcon.style.display = 'none';
+        mobileMenuBtn.setAttribute('aria-expanded', 'false');
+    }
+});
+
+// Get Route button functionality
+document.getElementById('get-route-btn').addEventListener('click', () => {
+    console.log('Plan Route button clicked');
+    alert('Route planning feature coming soon!');
+});
+
+// Smooth scrolling for anchor links
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', (e) => {
+        e.preventDefault();
+        const target = document.querySelector(anchor.getAttribute('href'));
+        if (target) {
+            target.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
             });
-        });
-
-        // Get Route button functionality
-        const getRouteBtn = document.getElementById('get-route-btn');
-        getRouteBtn.addEventListener('click', () => {
-            console.log('Plan Route button clicked');
-            alert('Route planning feature coming soon!');
-        });
-
-        // Smooth scrolling for anchor links
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-                const target = document.querySelector(this.getAttribute('href'));
-                if (target) {
-                    target.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
-                }
-            });
-        });
-
-        // Header background on scroll
-        const header = document.getElementById('header');
-        window.addEventListener('scroll', () => {
-            if (window.scrollY > 100) {
-                header.style.background = 'rgba(255, 255, 255, 0.98)';
-            } else {
-                header.style.background = 'rgba(255, 255, 255, 0.95)';
-            }
-        });
-
-        // Form submission
-        const contactForm = document.getElementById('contact-form');
-        contactForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            
-            // Get form data
-            const formData = new FormData(contactForm);
-            const inputs = contactForm.querySelectorAll('input, textarea');
-            const data = {};
-            
-            inputs.forEach(input => {
-                if (input.type !== 'submit') {
-                    data[input.placeholder || input.name] = input.value;
-                }
-            });
-            
-            // Simple validation
-            const requiredFields = contactForm.querySelectorAll('[required]');
-            let isValid = true;
-            
-            requiredFields.forEach(field => {
-                if (!field.value.trim()) {
-                    isValid = false;
-                    field.style.borderColor = 'var(--primary)';
-                } else {
-                    field.style.borderColor = 'var(--border)';
-                }
-            });
-            
-            if (!isValid) {
-                alert('Please fill in all required fields');
-                return;
-            }
-            
-            const emailField = contactForm.querySelector('input[type="email"]');
-            if (!isValidEmail(emailField.value)) {
-                alert('Please enter a valid email address');
-                emailField.style.borderColor = 'var(--primary)';
-                return;
-            }
-            
-            // Simulate form submission
-            console.log('Form submitted:', data);
-            
-            alert("Thank you for your message! We'll get back to you within 24 hours.");
-            contactForm.reset();
-        });
-
-        // Email validation helper
-        function isValidEmail(email) {
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            return emailRegex.test(email);
         }
+    });
+});
 
-        // Add intersection observer for animations
-        const observeElements = document.querySelectorAll('.feature-card, .stat-item, .contact-item');
+// Header background on scroll
+const header = document.getElementById('header');
+window.addEventListener('scroll', () => {
+    header.style.background = window.scrollY > 100 
+        ? 'rgba(255, 255, 255, 0.98)' 
+        : 'rgba(255, 255, 255, 0.95)';
+});
 
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.style.opacity = '1';
-                    entry.target.style.transform = 'translateY(0)';
-                }
-            });
-        }, {
-            threshold: 0.1,
-            rootMargin: '0px 0px -50px 0px'
-        });
+// Form submission
+const contactForm = document.getElementById('contact-form');
+contactForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
 
-        // Initially hide elements and observe them
-        observeElements.forEach(el => {
-            el.style.opacity = '0';
-            el.style.transform = 'translateY(20px)';
-            el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-            observer.observe(el);
-        });
+    // Get form data
+    const formData = new FormData(contactForm);
+    const data = {
+        firstName: formData.get('First Name'),
+        lastName: formData.get('Last Name'),
+        email: formData.get('Email'),
+        subject: formData.get('Subject'),
+        message: formData.get('Message'),
+        timestamp: new Date()
+    };
 
-        // Add click animations to buttons
-        document.querySelectorAll('.btn').forEach(button => {
-            button.addEventListener('click', function(e) {
-                // Create ripple effect
-                const ripple = document.createElement('span');
-                const rect = this.getBoundingClientRect();
-                const size = Math.max(rect.width, rect.height);
-                const x = e.clientX - rect.left - size / 2;
-                const y = e.clientY - rect.top - size / 2;
-                
-                ripple.style.cssText = `
-                    position: absolute;
-                    width: ${size}px;
-                    height: ${size}px;
-                    left: ${x}px;
-                    top: ${y}px;
-                    background: rgba(255, 255, 255, 0.3);
-                    border-radius: 50%;
-                    transform: scale(0);
-                    animation: ripple 0.6s linear;
-                    pointer-events: none;
-                `;
-                
-                this.style.position = 'relative';
-                this.style.overflow = 'hidden';
-                this.appendChild(ripple);
-                
-                setTimeout(() => {
-                    ripple.remove();
-                }, 600);
-            });
-        });
+    // Validate required fields
+    const requiredFields = contactForm.querySelectorAll('[required]');
+    let isValid = true;
+
+    requiredFields.forEach(field => {
+        if (!field.value.trim()) {
+            isValid = false;
+            field.style.borderColor = 'var(--primary)';
+        } else {
+            field.style.borderColor = 'var(--border)';
+        }
+    });
+
+    if (!isValid) {
+        alert('Please fill in all required fields');
+        return;
+    }
+
+    // Validate email
+    const emailField = contactForm.querySelector('input[type="email"]');
+    if (!isValidEmail(emailField.value)) {
+        alert('Please enter a valid email address');
+        emailField.style.borderColor = 'var(--primary)';
+        return;
+    }
+
+    try {
+        // If using Firebase, uncomment the following line
+        // await addDoc(collection(db, 'contacts'), data);
+        
+        // Simulate form submission (remove if using Firebase)
+        console.log('Form submitted:', data);
+        
+        alert("Thank you for your message! We'll get back to you within 24 hours.");
+        contactForm.reset();
+    } catch (error) {
+        console.error('Error submitting form:', error);
+        alert('There was an error submitting your message. Please try again later.');
+    }
+});
+
+// Email validation helper
+function isValidEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+}
+
+// Intersection observer for animations
+const observeElements = document.querySelectorAll('.feature-card, .stat-item, .contact-item');
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            entry.target.style.opacity = '1';
+            entry.target.style.transform = 'translateY(0)';
+        }
+    });
+}, {
+    threshold: 0.1,
+    rootMargin: '0px 0px -50px 0px'
+});
+
+// Initialize elements for animation
+observeElements.forEach(el => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(20px)';
+    el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+    observer.observe(el);
+});
+
+// Button ripple effect
+document.querySelectorAll('.btn').forEach(button => {
+    button.addEventListener('click', function(e) {
+        const ripple = document.createElement('span');
+        const rect = this.getBoundingClientRect();
+        const size = Math.max(rect.width, rect.height);
+        const x = e.clientX - rect.left - size / 2;
+        const y = e.clientY - rect.top - size / 2;
+
+        ripple.style.cssText = `
+            position: absolute;
+            width: ${size}px;
+            height: ${size}px;
+            left: ${x}px;
+            top: ${y}px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            transform: scale(0);
+            animation: ripple 0.6s linear;
+            pointer-events: none;
+        `;
+
+        this.style.position = 'relative';
+        this.style.overflow = 'hidden';
+        this.appendChild(ripple);
+
+        setTimeout(() => ripple.remove(), 600);
+    });
+});
     </script>
 </body>
 </html>

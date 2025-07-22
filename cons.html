@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ClearRoute</title>
+<link rel="icon" href="favicon.png" type="image/x-icon" />
+
+  <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    /* Your existing styles unchanged */
+    * { box-sizing: border-box; }
+    body, html {
+      margin: 0; padding: 0; height: 100%;
+      font-family: 'Roboto', sans-serif;
+      background-color: #f1f3f4;
+      color: #202124;
+    }
+    #map {
+      height: 85vh;
+      width: 100%;
+      transition: filter 0.3s ease;
+    }
+    #map.construction-mode {
+      cursor: crosshair;
+      filter: grayscale(0.2) brightness(0.95);
+    }
+    #controls {
+      padding: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+      background: white;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+    input[type="text"] {
+      flex: 1;
+      min-width: 200px;
+      padding: 12px 18px;
+      font-size: 16px;
+      border: 1px solid #dfe1e5;
+      border-radius: 24px;
+      background-color: #fff;
+      transition: box-shadow 0.2s ease;
+    }
+    input[type="text"]:focus {
+      outline: none;
+      border-color: #4285f4;
+      box-shadow: 0 0 0 3px rgba(66,133,244,0.3);
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 15px;
+      border: none;
+      border-radius: 24px;
+      cursor: pointer;
+      background-color: #4285f4;
+      color: white;
+      transition: background-color 0.2s ease;
+    }
+    button:hover { background-color: #3367d6; }
+    #toggleConstructionBtn {
+      background-color: #fbbc05;
+      color: #202124;
+    }
+    #toggleConstructionBtn:hover { background-color: #e0a800; }
+    #message {
+      padding: 12px 16px;
+      font-size: 14px;
+      background-color: white;
+      border-top: 1px solid #eee;
+      border-bottom: 1px solid #eee;
+    }
+    #constructionModeInfo {
+      font-weight: 500;
+      color: #d93025;
+      margin-left: auto;
+    }
+    @media screen and (max-width: 600px) {
+      #controls {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      button, input[type="text"] {
+        width: 100%;
+      }
+      #constructionModeInfo {
+        margin: 10px 0 0;
+        text-align: center;
+      }
+    }
+    #customAlert {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.4);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      flex-direction: column;
+      padding: 20px;
+      text-align: center;
+    }
+    #customAlertBox {
+      background: #fff;
+      padding: 24px 32px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      max-width: 500px;
+      width: 100%;
+      animation: fadeIn 0.3s ease;
+    }
+    #customAlertClose {
+      position: absolute;
+      top: 10px;
+      right: 14px;
+      font-size: 22px;
+      font-weight: bold;
+      color: #888;
+      cursor: pointer;
+    }
+    #customAlertClose:hover { color: #111; }
+    #customAlertButtons {
+      margin-top: 20px;
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+    }
+    #customAlertButtons button {
+      flex: 1;
+      padding: 12px 0;
+      font-weight: bold;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+    }
+    #btnYes {
+      background-color: #34a853;
+      color: white;
+    }
+    #btnNo {
+      background-color: #ea4335;
+      color: white;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    #noteModal {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.4);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+    }
+    #noteModalBox {
+      background: white;
+      padding: 24px 32px;
+      border-radius: 12px;
+      max-width: 90%;
+      width: 400px;
+      position: relative;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      animation: fadeIn 0.3s ease;
+    }
+    #noteModalBox h3 {
+      margin-top: 0;
+    }
+    #noteModalClose {
+      position: absolute;
+      top: 10px;
+      right: 14px;
+      font-size: 22px;
+      font-weight: bold;
+      color: #888;
+      cursor: pointer;
+    }
+    #noteModalClose:hover { color: #111; }
+    #noteModalBox input[type="text"],
+    #noteModalBox textarea {
+      width: 100%;
+      margin-top: 10px;
+      padding: 10px;
+      font-size: 14px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      resize: none;
+    }
+    #saveNoteBtn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 24px;
+      background: #fbbc05;
+      color: #202124;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div id="controls">
+    <input type="text" id="start" placeholder="Start location" />
+    <input type="text" id="end" placeholder="End location" />
+    <button id="routeBtn">Get Route</button>
+    <button id="toggleConstructionBtn">Add Construction Site</button>
+    <span id="constructionModeInfo" style="display:none;">Click map to add construction site</span>
+  </div>
+  <div id="message"></div>
+  <div id="map"></div>
+
+  <!-- Alert Modal -->
+  <div id="customAlert">
+    <div id="customAlertBox">
+      <div id="customAlertMessage"></div>
+      <div id="customAlertButtons">
+        <button id="btnYes">Avoid Construction</button>
+        <button id="btnNo">Show Original Route</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Construction Note Modal -->
+  <div id="noteModal">
+    <div id="noteModalBox">
+      <span id="noteModalClose">&times;</span>
+      <h3>Add Construction Site Details</h3>
+      <textarea id="noteInput" placeholder="Describe the site (e.g. Road closed, heavy machinery...)"></textarea>
+      <input type="text" id="estimatedFix" placeholder="Estimated time to get fixed (e.g. 3 days)" />
+      <input type="number" id="constructionLength" placeholder="Construction area length in meters (e.g. 500)" min="10" />
+      <input type="text" id="altRoute" placeholder="Alternative route suggestion" />
+      <textarea id="extraDetails" placeholder="Extra details (optional)"></textarea>
+      <button id="saveNoteBtn">Save</button>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+
+    // Initialize Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyD5eqU1J6dDbVodUH2dP0M1nnGKYzmLA8E",
+      authDomain: "construction-map-site.firebaseapp.com",
+      projectId: "construction-map-site",
+      storageBucket: "construction-map-site.appspot.com",
+      messagingSenderId: "422018663311",
+      appId: "1:422018663311:web:37400a7fac5248ecf541fa"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const ORS_API_KEY = 'eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6IjI1NWMyNjgzNzUyMDQ1YjhhYTVjODBlNjgzZWQ4ZGFkIiwiaCI6Im11cm11cjY0In0=';
+
+    const map = L.map('map').setView([40.7128, -74.006], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    let routeLayer, startMarker, endMarker;
+    let constructionMarkers = []; // { marker, polygon }
+    let constructionPolygons = []; // turf polygons for avoidance
+    let constructionMode = false;
+    let clickedLatLng = null;
+
+    const messageDiv = document.getElementById('message');
+    const constructionModeInfo = document.getElementById('constructionModeInfo');
+    const customAlert = document.getElementById('customAlert');
+    const customAlertMessage = document.getElementById('customAlertMessage');
+    const btnYes = document.getElementById('btnYes');
+    const btnNo = document.getElementById('btnNo');
+
+    // Helper: create rectangular polygon (square) around latlng with Turf using given length in meters
+    function createRectPolygon(latlng, lengthMeters) {
+      const halfLenDegLat = (lengthMeters / 2) / 111320;
+      const halfLenDegLng = halfLenDegLat / Math.cos(latlng.lat * Math.PI / 180);
+
+      const corners = [
+        [latlng.lng - halfLenDegLng, latlng.lat - halfLenDegLat],
+        [latlng.lng + halfLenDegLng, latlng.lat - halfLenDegLat],
+        [latlng.lng + halfLenDegLng, latlng.lat + halfLenDegLat],
+        [latlng.lng - halfLenDegLng, latlng.lat + halfLenDegLat],
+        [latlng.lng - halfLenDegLng, latlng.lat - halfLenDegLat], // close ring
+      ];
+      return turf.polygon([corners]);
+    }
+
+    function showCustomAlertWithConsent(message, onYes, onNo) {
+      customAlertMessage.innerHTML = message;
+      customAlert.style.display = 'flex';
+      btnYes.onclick = () => {
+        customAlert.style.display = 'none';
+        onYes();
+      };
+      btnNo.onclick = () => {
+        customAlert.style.display = 'none';
+        onNo();
+      };
+    }
+
+    function clearRouteAndMarkers() {
+      if (routeLayer) map.removeLayer(routeLayer);
+      if (startMarker) map.removeLayer(startMarker);
+      if (endMarker) map.removeLayer(endMarker);
+      routeLayer = startMarker = endMarker = null;
+    }
+
+    function distance(latlng1, latlng2) {
+      const R = 6371000;
+      const toRad = deg => deg * Math.PI / 180;
+      const dLat = toRad(latlng2[0] - latlng1[0]);
+      const dLon = toRad(latlng2[1] - latlng1[1]);
+      const lat1 = toRad(latlng1[0]), lat2 = toRad(latlng2[0]);
+      const a = Math.sin(dLat/2)**2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon/2)**2;
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    // Find constructions near any point on route within threshold (meters)
+    function findNearbyConstructions(routeCoords, threshold = 100) {
+      const near = [];
+      for (const { marker, polygon, note } of constructionMarkers) {
+        const cLatLng = marker.getLatLng();
+        for (const coord of routeCoords) {
+          const dist = distance([coord[0], coord[1]], [cLatLng.lat, cLatLng.lng]);
+          if (dist <= threshold) {
+            near.push(note || "Unnamed construction site");
+            break;
+          }
+        }
+      }
+      return near;
+    }
+
+    // Load all constructions from Firestore, add markers + polygons on map, store polygons for ORS avoid
+    async function loadConstructionMarkers() {
+      const querySnapshot = await getDocs(collection(db, "constructions"));
+
+      // Clear existing
+      constructionMarkers.forEach(obj => {
+        map.removeLayer(obj.marker);
+        if (obj.polygonLayer) map.removeLayer(obj.polygonLayer);
+      });
+      constructionMarkers = [];
+      constructionPolygons = [];
+
+      querySnapshot.forEach(doc => {
+        const data = doc.data();
+
+        // Create marker icon
+        const icon = L.icon({
+          iconUrl: 'https://cdn-icons-png.flaticon.com/512/126/126549.png',
+          iconSize: [25, 41],
+          iconAnchor: [12, 41],
+          popupAnchor: [1, -34]
+        });
+
+        // Popup content
+      const popupContent = `
+  <strong>Construction Site:</strong> ${data.note}<br>
+  ${data.estimatedFix ? `<strong>Fix ETA:</strong> ${data.estimatedFix}<br>` : ''}
+  ${data.constructionLength ? `<strong>Area Length:</strong> ${data.constructionLength} m<br>` : ''}
+  ${data.altRoute ? `<strong>Alt Route:</strong> ${data.altRoute}<br>` : ''}
+  ${data.extraDetails ? `<strong>Details:</strong> ${data.extraDetails}<br>` : ''}
+  <button onclick="deleteConstruction('${doc.id}')" style="margin-top: 5px; background:#34a853; color:white; padding:5px 10px; border:none; border-radius:5px; cursor:pointer;">✅ Construction Over</button>
+
+`;
+
+
+        // Marker
+        const marker = L.marker([data.lat, data.lng], { icon }).addTo(map).bindPopup(popupContent);
+
+        // Polygon (avoidance) — if length valid, else default 500m
+        let lengthM = parseFloat(data.constructionLength);
+        if (isNaN(lengthM) || lengthM < 10) lengthM = 500;
+        const polygon = createRectPolygon(marker.getLatLng(), lengthM);
+        const latlngs = polygon.geometry.coordinates[0].map(coord => [coord[1], coord[0]]);
+        const polygonLayer = L.polygon(latlngs, { color: 'orange', fillOpacity: 0.3 }).addTo(map);
+
+        constructionMarkers.push({ marker, polygon, polygonLayer, note: data.note });
+        constructionPolygons.push(polygon);
+      });
+    }
+
+    // Geocode with Nominatim
+    async function geocode(query) {
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`;
+      const res = await fetch(url, { headers: {'Accept-Language': 'en'} });
+      if (!res.ok) throw new Error('Geocoding error');
+      const results = await res.json();
+      if (!results.length) throw new Error('Location not found: ' + query);
+      return { lat: parseFloat(results[0].lat), lon: parseFloat(results[0].lon), display_name: results[0].display_name };
+    }
+
+    // Basic OSRM routing (no avoidance)
+    async function getRoute(start, end) {
+      const url = `https://router.project-osrm.org/route/v1/driving/${start.lon},${start.lat};${end.lon},${end.lat}?overview=full&geometries=geojson`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('Routing error');
+      const data = await res.json();
+      if (!data.routes.length) throw new Error('No route found');
+      return data.routes[0];
+    }
+
+    // ORS routing with avoidance polygons
+    async function getRouteAvoidingPolygons(start, end, avoidPolygons) {
+      const avoidGeoJson = {
+        type: "MultiPolygon",
+        coordinates: avoidPolygons.map(p => p.geometry.coordinates)
+      };
+
+      const url = 'https://api.openrouteservice.org/v2/directions/driving-car/geojson';
+
+      const body = {
+        coordinates: [[start.lon, start.lat], [end.lon, end.lat]],
+        options: {
+          avoid_polygons: avoidGeoJson
+        }
+      };
+
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': ORS_API_KEY,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error('ORS routing error: ' + errText);
+      }
+
+      const data = await res.json();
+
+      if (!data.features || !data.features.length) throw new Error('No route found');
+
+      return data.features[0].geometry;
+    }
+
+    // Display route on map given GeoJSON geometry
+    function displayRoute(geojson) {
+      if (routeLayer) map.removeLayer(routeLayer);
+      routeLayer = L.geoJSON(geojson, {
+        style: { color: 'blue', weight: 5 }
+      }).addTo(map);
+      map.fitBounds(routeLayer.getBounds());
+    }
+
+    // Main routing logic
+    async function routeAndCheck() {
+      const startInput = document.getElementById('start').value.trim();
+      const endInput = document.getElementById('end').value.trim();
+      if (!startInput || !endInput) {
+        messageDiv.style.color = 'red';
+        messageDiv.textContent = 'Enter both start and end locations.';
+        return;
+      }
+
+      try {
+        messageDiv.style.color = '#202124';
+        messageDiv.textContent = 'Processing...';
+
+        // Load constructions fresh
+        await loadConstructionMarkers();
+
+        const [start, end] = await Promise.all([geocode(startInput), geocode(endInput)]);
+
+        clearRouteAndMarkers();
+
+        startMarker = L.marker([start.lat, start.lon]).addTo(map).bindPopup(`Start: ${start.display_name}`).openPopup();
+        endMarker = L.marker([end.lat, end.lon]).addTo(map).bindPopup(`End: ${end.display_name}`).openPopup();
+
+        // Get default route first
+        const route = await getRoute(start, end);
+        const coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
+
+        // Find nearby constructions within 100m threshold
+        const nearbyNotes = findNearbyConstructions(coords, 100);
+
+        if (nearbyNotes.length > 0 && constructionPolygons.length > 0) {
+          // Show alert and ask user for consent to avoid constructions
+          showCustomAlertWithConsent(
+            `⚠ Route is near ${nearbyNotes.length} construction site(s):<br><br>` +
+            nearbyNotes.map((n, i) => `${i + 1}. ${n}`).join("<br>") +
+            `<br><br>Would you like to get a route avoiding these construction areas?`,
+            async () => { // On Yes: route avoiding polygons
+              messageDiv.textContent = 'Calculating route avoiding construction sites...';
+              try {
+                const avoidedGeoJson = await getRouteAvoidingPolygons(start, end, constructionPolygons);
+                displayRoute(avoidedGeoJson);
+                messageDiv.style.color = 'green';
+                messageDiv.textContent = 'Route avoiding construction sites displayed!';
+              } catch(e) {
+                messageDiv.style.color = 'red';
+                messageDiv.textContent = 'Error with avoided route: ' + e.message;
+                // fallback to original route:
+                displayRoute(route.geometry);
+              }
+            },
+            () => { // On No: show original route
+              displayRoute(route.geometry);
+              messageDiv.style.color = 'green';
+              messageDiv.textContent = 'Original route displayed.';
+            }
+          );
+        } else {
+          // No nearby constructions, just show route
+          displayRoute(route.geometry);
+          messageDiv.style.color = 'green';
+          messageDiv.textContent = 'Route displayed!';
+        }
+      } catch (err) {
+        messageDiv.style.color = 'red';
+        messageDiv.textContent = 'Error: ' + err.message;
+      }
+    }
+
+    // Event listeners and UI handlers
+
+    document.getElementById('routeBtn').addEventListener('click', routeAndCheck);
+
+    document.getElementById('toggleConstructionBtn').addEventListener('click', () => {
+      constructionMode = !constructionMode;
+      constructionModeInfo.style.display = constructionMode ? 'inline' : 'none';
+      map.getContainer().classList.toggle('construction-mode', constructionMode);
+      messageDiv.style.color = constructionMode ? 'orange' : 'black';
+      messageDiv.textContent = constructionMode
+        ? 'Construction mode enabled: Click map to add construction sites.'
+        : 'Construction mode disabled.';
+    });
+
+    map.on('click', function (e) {
+      if (!constructionMode) return;
+      clickedLatLng = e.latlng;
+      document.getElementById('noteModal').style.display = 'flex';
+    });
+
+    // Construction note modal controls
+    document.getElementById('noteModalClose').onclick = () => {
+      document.getElementById('noteModal').style.display = 'none';
+    };
+
+    document.getElementById('saveNoteBtn').onclick = async () => {
+      const note = document.getElementById('noteInput').value.trim();
+      const estimatedFix = document.getElementById('estimatedFix').value.trim();
+      let constructionLength = document.getElementById('constructionLength').value.trim();
+      const altRoute = document.getElementById('altRoute').value.trim();
+      const extraDetails = document.getElementById('extraDetails').value.trim();
+
+      if (!note) {
+        messageDiv.style.color = 'red';
+        messageDiv.textContent = 'Construction site note is required.';
+        return;
+      }
+
+      // Validate constructionLength, set default if invalid
+      let lengthNum = parseFloat(constructionLength);
+      if (isNaN(lengthNum) || lengthNum < 10) {
+        lengthNum = 500;
+        constructionLength = '500';
+      }
+
+      try {
+        await addDoc(collection(db, "constructions"), {
+          lat: clickedLatLng.lat,
+          lng: clickedLatLng.lng,
+          note,
+          estimatedFix,
+          constructionLength,
+          altRoute,
+          extraDetails
+        });
+
+        document.getElementById('noteModal').style.display = 'none';
+        document.getElementById('noteInput').value = '';
+        document.getElementById('estimatedFix').value = '';
+        document.getElementById('constructionLength').value = '';
+        document.getElementById('altRoute').value = '';
+        document.getElementById('extraDetails').value = '';
+
+        await loadConstructionMarkers();
+        messageDiv.style.color = 'green';
+        messageDiv.textContent = 'Construction site added.';
+      } catch (err) {
+        messageDiv.style.color = 'red';
+        messageDiv.textContent = 'Error saving to Firestore: ' + err.message;
+      }
+    };
+
+    // Initial load of construction markers
+    loadConstructionMarkers();
+
+    // On map ready, alert if constructions near center
+    map.whenReady(() => {
+      setTimeout(() => {
+        const center = map.getCenter();
+        const nearConstructions = constructionMarkers.filter(({ marker }) => {
+          return distance([marker.getLatLng().lat, marker.getLatLng().lng], [center.lat, center.lng]) < 300;
+        });
+
+        if (nearConstructions.length > 0) {
+          showCustomAlert(
+            `⚠ Warning: There are ${nearConstructions.length} construction site(s) near this area.<br><br>` +
+            nearConstructions.map(({ note }, i) => `${i + 1}. ${note || "Unnamed construction site"}`).join("<br>")
+          );
+        }
+      }, 1500);
+    });
+window.deleteConstruction = async function(docId) {
+    if (!confirm("Are you sure that this construction is over?")) return;
+    try {
+      const { deleteDoc, doc: docRef } = await import("https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js");
+      await deleteDoc(docRef(db, "constructions", docId));
+      await loadConstructionMarkers();
+      document.getElementById('message').style.color = 'green';
+      document.getElementById('message').textContent = 'Construction site removed.';
+    } catch (err) {
+      document.getElementById('message').style.color = 'red';
+      document.getElementById('message').textContent = 'Error removing site: ' + err.message;
+    }
+  }
+  </script>
+</body>
+</html>

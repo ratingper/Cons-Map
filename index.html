@@ -1,618 +1,1605 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ClearRoute</title>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-  <style>
-    /* Your existing styles unchanged */
-    * { box-sizing: border-box; }
-    body, html {
-      margin: 0; padding: 0; height: 100%;
-      font-family: 'Roboto', sans-serif;
-      background-color: #f1f3f4;
-      color: #202124;
-    }
-    #map {
-      height: 85vh;
-      width: 100%;
-      transition: filter 0.3s ease;
-    }
-    #map.construction-mode {
-      cursor: crosshair;
-      filter: grayscale(0.2) brightness(0.95);
-    }
-    #controls {
-      padding: 16px;
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 12px;
-      background: white;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      position: sticky;
-      top: 0;
-      z-index: 1000;
-    }
-    input[type="text"] {
-      flex: 1;
-      min-width: 200px;
-      padding: 12px 18px;
-      font-size: 16px;
-      border: 1px solid #dfe1e5;
-      border-radius: 24px;
-      background-color: #fff;
-      transition: box-shadow 0.2s ease;
-    }
-    input[type="text"]:focus {
-      outline: none;
-      border-color: #4285f4;
-      box-shadow: 0 0 0 3px rgba(66,133,244,0.3);
-    }
-    button {
-      padding: 10px 20px;
-      font-size: 15px;
-      border: none;
-      border-radius: 24px;
-      cursor: pointer;
-      background-color: #4285f4;
-      color: white;
-      transition: background-color 0.2s ease;
-    }
-    button:hover { background-color: #3367d6; }
-    #toggleConstructionBtn {
-      background-color: #fbbc05;
-      color: #202124;
-    }
-    #toggleConstructionBtn:hover { background-color: #e0a800; }
-    #message {
-      padding: 12px 16px;
-      font-size: 14px;
-      background-color: white;
-      border-top: 1px solid #eee;
-      border-bottom: 1px solid #eee;
-    }
-    #constructionModeInfo {
-      font-weight: 500;
-      color: #d93025;
-      margin-left: auto;
-    }
-    @media screen and (max-width: 600px) {
-      #controls {
-        flex-direction: column;
-        align-items: stretch;
-      }
-      button, input[type="text"] {
-        width: 100%;
-      }
-      #constructionModeInfo {
-        margin: 10px 0 0;
-        text-align: center;
-      }
-    }
-    #customAlert {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: rgba(0,0,0,0.4);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 9999;
-      flex-direction: column;
-      padding: 20px;
-      text-align: center;
-    }
-    #customAlertBox {
-      background: #fff;
-      padding: 24px 32px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-      max-width: 500px;
-      width: 100%;
-      animation: fadeIn 0.3s ease;
-    }
-    #customAlertClose {
-      position: absolute;
-      top: 10px;
-      right: 14px;
-      font-size: 22px;
-      font-weight: bold;
-      color: #888;
-      cursor: pointer;
-    }
-    #customAlertClose:hover { color: #111; }
-    #customAlertButtons {
-      margin-top: 20px;
-      display: flex;
-      justify-content: center;
-      gap: 16px;
-    }
-    #customAlertButtons button {
-      flex: 1;
-      padding: 12px 0;
-      font-weight: bold;
-      border-radius: 8px;
-      border: none;
-      cursor: pointer;
-    }
-    #btnYes {
-      background-color: #34a853;
-      color: white;
-    }
-    #btnNo {
-      background-color: #ea4335;
-      color: white;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: scale(0.95); }
-      to { opacity: 1; transform: scale(1); }
-    }
-    #noteModal {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: rgba(0,0,0,0.4);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 10000;
-    }
-    #noteModalBox {
-      background: white;
-      padding: 24px 32px;
-      border-radius: 12px;
-      max-width: 90%;
-      width: 400px;
-      position: relative;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-      animation: fadeIn 0.3s ease;
-    }
-    #noteModalBox h3 {
-      margin-top: 0;
-    }
-    #noteModalClose {
-      position: absolute;
-      top: 10px;
-      right: 14px;
-      font-size: 22px;
-      font-weight: bold;
-      color: #888;
-      cursor: pointer;
-    }
-    #noteModalClose:hover { color: #111; }
-    #noteModalBox input[type="text"],
-    #noteModalBox textarea {
-      width: 100%;
-      margin-top: 10px;
-      padding: 10px;
-      font-size: 14px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      resize: none;
-    }
-    #saveNoteBtn {
-      padding: 10px 20px;
-      border: none;
-      border-radius: 24px;
-      background: #fbbc05;
-      color: #202124;
-      font-weight: bold;
-      cursor: pointer;
-      margin-top: 12px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClearRoute - Avoid Construction, Find the Fastest Path</title>
+<link rel="icon" href="favicon.png" type="image/x-icon" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Reset and base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            color: #0f172a;
+            background-color: #ffffff;
+        }
+
+        /* CSS Variables for design system */
+        :root {
+            /* Colors */
+            --primary: hsl(25, 95%, 53%);
+            --primary-glow: hsl(35, 100%, 60%);
+            --primary-foreground: hsl(0, 0%, 100%);
+            --accent: hsl(45, 100%, 51%);
+            --accent-foreground: hsl(0, 0%, 100%);
+            --secondary: hsl(220, 14%, 96%);
+            --secondary-foreground: hsl(220, 9%, 46%);
+            --background: hsl(0, 0%, 100%);
+            --foreground: hsl(222.2, 84%, 4.9%);
+            --muted: hsl(220, 14%, 96%);
+            --muted-foreground: hsl(220, 9%, 46%);
+            --border: hsl(220, 13%, 91%);
+            --card: hsl(0, 0%, 100%);
+            --card-foreground: hsl(222.2, 84%, 4.9%);
+            
+            /* Gradients */
+            --gradient-hero: linear-gradient(135deg, var(--primary), var(--primary-glow));
+            --gradient-subtle: linear-gradient(180deg, var(--background), var(--secondary));
+            
+            /* Shadows */
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+            
+            /* Border radius */
+            --radius: 0.5rem;
+            
+            /* Transitions */
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Utility classes */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, var(--primary), var(--primary-glow));
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: transparent;
+        }
+
+        /* Header */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 4rem;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .logo-icon {
+            background: var(--gradient-hero);
+            padding: 0.5rem;
+            border-radius: var(--radius);
+            color: var(--primary-foreground);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-text {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--foreground);
+        }
+
+        .nav-desktop {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .nav-link {
+            color: var(--muted-foreground);
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .nav-link:hover {
+            color: var(--foreground);
+        }
+
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            padding: 0.5rem;
+            cursor: pointer;
+            color: var(--foreground);
+        }
+
+        .nav-mobile {
+            display: none;
+            padding: 1rem 0;
+            border-top: 1px solid var(--border);
+        }
+
+        .nav-mobile-content {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .nav-mobile-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            padding-top: 0.5rem;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            border-radius: var(--radius);
+            font-weight: 500;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            transition: var(--transition);
+            font-family: inherit;
+        }
+
+        .btn-sm {
+            height: 2.25rem;
+            padding: 0 0.75rem;
+            font-size: 0.875rem;
+        }
+
+        .btn-lg {
+            height: 2.75rem;
+            padding: 0 2rem;
+            font-size: 1rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: var(--primary-foreground);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-primary:hover {
+            background: hsl(25, 95%, 48%);
+        }
+
+        .btn-outline {
+            border: 1px solid var(--border);
+            background: var(--background);
+            color: var(--foreground);
+        }
+
+        .btn-outline:hover {
+            background: var(--accent);
+            color: var(--accent-foreground);
+        }
+
+        .btn-hero {
+            background: var(--gradient-hero);
+            color: var(--primary-foreground);
+            box-shadow: var(--shadow-xl);
+            font-weight: 600;
+            border: none;
+        }
+
+        .btn-hero:hover {
+            transform: scale(1.05);
+        }
+
+        .btn-cta {
+            background: var(--accent);
+            color: var(--accent-foreground);
+            box-shadow: var(--shadow-lg);
+            font-weight: 600;
+            border: 2px solid var(--accent);
+        }
+
+        .btn-cta:hover {
+            background: hsl(45, 100%, 46%);
+            border-color: hsl(45, 100%, 46%);
+        }
+
+        .btn-full {
+            width: 100%;
+        }
+
+        /* Hero Section */
+        .hero {
+            position: relative;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .hero-bg {
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+        }
+
+        .hero-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .hero-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to right, 
+                rgba(255, 255, 255, 0.9), 
+                rgba(255, 255, 255, 0.7), 
+                rgba(255, 255, 255, 0.4)
+            );
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 10;
+            padding-top: 4rem;
+        }
+
+        .hero-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+            align-items: center;
+            max-width: 100%;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .hero-text {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .hero-title {
+            font-size: 2rem;
+            font-weight: 700;
+            line-height: 1.2;
+            color: var(--foreground);
+        }
+
+        .hero-description {
+            font-size: 1rem;
+            color: var(--muted-foreground);
+            max-width: 28rem;
+            margin: 0 auto;
+        }
+
+        .hero-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        .trust-indicators {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            justify-content: center;
+            padding-top: 1.5rem;
+        }
+
+        .trust-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.75rem;
+            color: var(--muted-foreground);
+        }
+
+        .trust-item svg {
+            color: var(--primary);
+        }
+
+        .hero-stats {
+            margin-top: 2rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: var(--radius);
+            padding: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--muted-foreground);
+        }
+
+        /* Features Section */
+        .features {
+            padding: 3rem 0;
+            background: linear-gradient(180deg, var(--background), rgba(248, 250, 252, 0.3));
+        }
+
+        .section-header {
+            max-width: 48rem;
+            margin: 0 auto 3rem;
+            text-align: center;
+        }
+
+        .section-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--foreground);
+            margin-bottom: 1rem;
+        }
+
+        .section-description {
+            font-size: 1rem;
+            color: var(--muted-foreground);
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .feature-card {
+            background: var(--card);
+            border: 1px solid rgba(226, 232, 240, 0.5);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            text-align: center;
+            transition: var(--transition);
+        }
+
+        .feature-card:hover {
+            box-shadow: var(--shadow-lg);
+            border-color: rgba(251, 146, 60, 0.3);
+        }
+
+        .feature-icon {
+            width: 3rem;
+            height: 3rem;
+            background: linear-gradient(135deg, rgba(251, 146, 60, 0.1), rgba(245, 158, 11, 0.1));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 0.75rem;
+            color: var(--primary);
+            transition: var(--transition);
+        }
+
+        .feature-icon.accent {
+            color: var(--accent);
+        }
+
+        .feature-card:hover .feature-icon {
+            transform: scale(1.1);
+        }
+
+        .feature-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--foreground);
+            margin-bottom: 0.75rem;
+        }
+
+        .feature-description {
+            color: var(--muted-foreground);
+            line-height: 1.6;
+            font-size: 0.875rem;
+        }
+
+        .features-cta {
+            text-align: center;
+        }
+
+        /* About Section */
+        .about {
+            padding: 3rem 0;
+            background: var(--background);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            background: var(--background);
+            border: 1px solid var(--border);
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            color: var(--foreground);
+            margin-bottom: 1rem;
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .stat-item {
+            text-align: center;
+            background: var(--card);
+            border: 1px solid rgba(226, 232, 240, 0.5);
+            border-radius: var(--radius);
+            padding: 1rem;
+            transition: var(--transition);
+        }
+
+        .stat-item:hover {
+            border-color: rgba(251, 146, 60, 0.3);
+        }
+
+        .stat-icon {
+            width: 2.5rem;
+            height: 2.5rem;
+            background: linear-gradient(135deg, rgba(251, 146, 60, 0.1), rgba(245, 158, 11, 0.1));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 0.5rem;
+            color: var(--primary);
+        }
+
+        .stat-icon.accent {
+            color: var(--accent);
+        }
+
+        .mission-card {
+            background: var(--card);
+            border: 1px solid rgba(226, 232, 240, 0.5);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+
+        .mission-content {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+            padding: 1.5rem;
+        }
+
+        .mission-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--foreground);
+            margin-bottom: 0.75rem;
+        }
+
+        .mission-description {
+            color: var(--muted-foreground);
+            line-height: 1.6;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+        }
+
+        .mission-points {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .mission-point {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .point-dot {
+            width: 0.5rem;
+            height: 0.5rem;
+            border-radius: 50%;
+        }
+
+        .point-dot.primary {
+            background: var(--primary);
+        }
+
+        .point-dot.accent {
+            background: var(--accent);
+        }
+
+        .mission-visual {
+            background: linear-gradient(135deg, rgba(251, 146, 60, 0.05), rgba(245, 158, 11, 0.05));
+            border-radius: var(--radius);
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .mission-icon {
+            margin-bottom: 0.75rem;
+            color: var(--primary);
+        }
+
+        .mission-visual-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--foreground);
+            margin-bottom: 0.5rem;
+        }
+
+        .mission-visual-text {
+            font-size: 0.75rem;
+            color: var(--muted-foreground);
+        }
+
+        /* Contact Section */
+        .contact {
+            padding: 3rem 0;
+            background: linear-gradient(180deg, var(--background), rgba(248, 250, 252, 0.3));
+        }
+
+        .contact-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        .contact-info-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--foreground);
+            margin-bottom: 1rem;
+        }
+
+        .contact-items {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .contact-item {
+            background: var(--card);
+            border: 1px solid rgba(226, 232, 240, 0.5);
+            border-radius: var(--radius);
+            padding: 1rem;
+            transition: var(--transition);
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .contact-item:hover {
+            border-color: rgba(251, 146, 60, 0.3);
+        }
+
+        .contact-icon {
+            width: 2.5rem;
+            height: 2.5rem;
+            background: linear-gradient(135deg, rgba(251, 146, 60, 0.1), rgba(245, 158, 11, 0.1));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            color: var(--primary);
+        }
+
+        .contact-details {
+            flex: 1;
+        }
+
+        .contact-title {
+            font-weight: 600;
+            color: var(--foreground);
+            margin-bottom: 0.25rem;
+            font-size: 0.875rem;
+        }
+
+        .contact-content {
+            color: var(--foreground);
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+            font-size: 0.875rem;
+        }
+
+        .contact-description {
+            font-size: 0.75rem;
+            color: var(--muted-foreground);
+        }
+
+        .form-card {
+            background: var(--card);
+            border: 1px solid rgba(226, 232, 240, 0.5);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+
+        .form-header {
+            padding: 1rem;
+        }
+
+        .form-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--foreground);
+            margin-bottom: 0.5rem;
+        }
+
+        .form-description {
+            color: var(--muted-foreground);
+            font-size: 0.875rem;
+        }
+
+        .form {
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.75rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-label {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--foreground);
+        }
+
+        .form-input,
+        .form-textarea {
+            padding: 0.5rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-family: inherit;
+            font-size: 0.875rem;
+            transition: var(--transition);
+            width: 100%;
+        }
+
+        .form-input:focus,
+        .form-textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(251, 146, 60, 0.1);
+        }
+
+        .form-textarea {
+            min-height: 6rem;
+            resize: vertical;
+        }
+
+        /* Ripple animation */
+        @keyframes ripple {
+            to {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+
+        /* Responsive Design */
+        @media (min-width: 480px) {
+            .hero-title {
+                font-size: 2.5rem;
+            }
+
+            .hero-description {
+                font-size: 1.125rem;
+            }
+
+            .hero-buttons {
+                gap: 1rem;
+            }
+
+            .trust-item {
+                font-size: 0.875rem;
+            }
+
+            .stat-value {
+                font-size: 1.875rem;
+            }
+
+            .stat-label {
+                font-size: 0.875rem;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (min-width: 640px) {
+            .hero-buttons {
+                flex-direction: row;
+                justify-content: center;
+            }
+            
+            .trust-indicators {
+                justify-content: center;
+                gap: 1.5rem;
+            }
+            
+            .hero-title {
+                font-size: 3rem;
+            }
+
+            .section-title {
+                font-size: 2rem;
+            }
+
+            .features {
+                padding: 4rem 0;
+            }
+
+            .about {
+                padding: 4rem 0;
+            }
+
+            .contact {
+                padding: 4rem 0;
+            }
+        }
+
+        @media (min-width: 768px) {
+            .mobile-menu-btn {
+                display: none;
+            }
+            
+            .nav-desktop {
+                display: flex;
+            }
+            
+            .container {
+                padding: 0 1.5rem;
+            }
+            
+            .hero-grid {
+                max-width: none;
+                text-align: left;
+            }
+            
+            .hero-buttons {
+                justify-content: flex-start;
+            }
+            
+            .trust-indicators {
+                justify-content: flex-start;
+            }
+            
+            .mission-content {
+                grid-template-columns: 1fr 1fr;
+                align-items: center;
+            }
+            
+            .contact-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .features-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .stats-row {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .container {
+                padding: 0 2rem;
+            }
+            
+            .hero-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 3rem;
+            }
+            
+            .hero-title {
+                font-size: 3.75rem;
+            }
+            
+            .section-title {
+                font-size: 2.25rem;
+            }
+            
+            .features-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            
+            .stats-row {
+                grid-template-columns: repeat(4, 1fr);
+            }
+
+            .hero-text {
+                gap: 2rem;
+            }
+
+            .hero-description {
+                max-width: 32rem;
+            }
+
+            .form-row {
+                gap: 1rem;
+            }
+
+            .form {
+                gap: 1.5rem;
+            }
+        }
+
+        @media (max-width: 767px) {
+            .mobile-menu-btn {
+                display: block;
+            }
+            
+            .nav-desktop {
+                display: none;
+            }
+            
+            .nav-mobile.active {
+                display: block;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero-grid {
+                gap: 1.5rem;
+            }
+
+            .hero-title {
+                font-size: 1.75rem;
+            }
+
+            .hero-description {
+                font-size: 0.875rem;
+                max-width: 100%;
+            }
+
+            .hero-buttons {
+                gap: 0.5rem;
+            }
+
+            .btn-lg {
+                height: 2.5rem;
+                padding: 0 1.5rem;
+                font-size: 0.875rem;
+            }
+
+            .trust-indicators {
+                gap: 0.75rem;
+                padding-top: 1rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .section-title {
+                font-size: 1.5rem;
+            }
+
+            .section-description {
+                font-size: 0.875rem;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-row {
+                grid-template-columns: 1fr;
+            }
+
+            .form-input,
+            .form-textarea {
+                font-size: 0.75rem;
+            }
+
+            .form-label {
+                font-size: 0.7rem;
+            }
+        }
+    </style>
 </head>
 <body>
-  <div id="controls">
-    <input type="text" id="start" placeholder="Start location" />
-    <input type="text" id="end" placeholder="End location" />
-    <button id="routeBtn">Get Route</button>
-    <button id="toggleConstructionBtn">Add Construction Site</button>
-    <span id="constructionModeInfo" style="display:none;">Click map to add construction site</span>
-  </div>
-  <div id="message"></div>
-  <div id="map"></div>
-
-  <!-- Alert Modal -->
-  <div id="customAlert">
-    <div id="customAlertBox">
-      <div id="customAlertMessage"></div>
-      <div id="customAlertButtons">
-        <button id="btnYes">Avoid Construction</button>
-        <button id="btnNo">Show Original Route</button>
-      </div>
+    <!-- Header -->
+<header id="header" class="header">
+    <div class="container">
+        <div class="header-content">
+            <!-- Logo -->
+            <a href="index.html" class="logo" style="text-decoration: none; color: inherit;">
+                <img src="clearroute.png" alt="ClearRoute Logo" width="30" height="24" style="vertical-align: middle;" />
+                <span class="logo-text">ClearRoute</span>
+            </a>
+        </div>
     </div>
-  </div>
+</header>
 
-  <!-- Construction Note Modal -->
-  <div id="noteModal">
-    <div id="noteModalBox">
-      <span id="noteModalClose">&times;</span>
-      <h3>Add Construction Site Details</h3>
-      <textarea id="noteInput" placeholder="Describe the site (e.g. Road closed, heavy machinery...)"></textarea>
-      <input type="text" id="estimatedFix" placeholder="Estimated time to get fixed (e.g. 3 days)" />
-      <input type="number" id="constructionLength" placeholder="Construction area length in meters (e.g. 500)" min="10" />
-      <input type="text" id="altRoute" placeholder="Alternative route suggestion" />
-      <textarea id="extraDetails" placeholder="Extra details (optional)"></textarea>
-      <button id="saveNoteBtn">Save</button>
-    </div>
-  </div>
 
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
-    // Initialize Firebase
-    const firebaseConfig = {
-      apiKey: "AIzaSyD5eqU1J6dDbVodUH2dP0M1nnGKYzmLA8E",
-      authDomain: "construction-map-site.firebaseapp.com",
-      projectId: "construction-map-site",
-      storageBucket: "construction-map-site.appspot.com",
-      messagingSenderId: "422018663311",
-      appId: "1:422018663311:web:37400a7fac5248ecf541fa"
-    };
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+                <!-- Desktop Navigation -->
+                <nav class="nav-desktop">
+                    <a href="#features" class="nav-link">Features</a>
+                    <a href="#about" class="nav-link">About</a>
+                    <a href="#contact" class="nav-link">Contact</a>
+                    <button class="btn btn-outline btn-sm">Sign In</button>
+                    <button class="btn btn-primary btn-sm">Get Started</button>
+                </nav>
 
-    const ORS_API_KEY = 'eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6IjI1NWMyNjgzNzUyMDQ1YjhhYTVjODBlNjgzZWQ4ZGFkIiwiaCI6Im11cm11cjY0In0=';
+                <!-- Mobile Menu Button -->
+                <button class="mobile-menu-btn" id="mobile-menu-btn">
+                    <svg id="menu-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="4" x2="20" y1="6" y2="6"/>
+                        <line x1="4" x2="20" y1="12" y2="12"/>
+                        <line x1="4" x2="20" y1="18" y2="18"/>
+                    </svg>
+                    <svg id="close-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+                        <path d="m18 6-12 12"/>
+                        <path d="m6 6 12 12"/>
+                    </svg>
+                </button>
+            </div>
 
-    const map = L.map('map').setView([40.7128, -74.006], 13);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
+            <!-- Mobile Navigation -->
+            <div class="nav-mobile" id="mobile-nav">
+                <nav class="nav-mobile-content">
+                    <a href="#features" class="nav-link">Features</a>
+                    <a href="#about" class="nav-link">About</a>
+                    <a href="#contact" class="nav-link">Contact</a>
+                    <div class="nav-mobile-buttons">
+                        <button class="btn btn-outline btn-sm">Sign In</button>
+                        <button class="btn btn-primary btn-sm">Get Started</button>
+                    </div>
+                </nav>
+            </div>
+        </div>
+    </header>
 
-    let routeLayer, startMarker, endMarker;
-    let constructionMarkers = []; // { marker, polygon }
-    let constructionPolygons = []; // turf polygons for avoidance
-    let constructionMode = false;
-    let clickedLatLng = null;
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-bg">
+            <img src="https://images.unsplash.com/photo-1581092795360-fd1ca04f0952?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80" alt="Construction site aerial view" class="hero-image">
+            <div class="hero-overlay"></div>
+        </div>
+        
+        <div class="container hero-content">
+            <div class="hero-grid">
+                <!-- Text Content -->
+                <div class="hero-text">
+                    <h1 class="hero-title">
+                        Avoid Construction
+                        <span class="gradient-text">Find the Fastest Route</span>
+                    </h1>
+                    <p class="hero-description">
+                        Real-time construction avoidance and optimized routing to get you to your destination quickly and safely, bypassing roadblocks and delays.
+                    </p>
+                    
+                    <!-- CTA Buttons -->
+                    <div class="hero-buttons">
+                        <button class="btn btn-hero btn-lg" id="get-route-btn">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                                <circle cx="12" cy="10" r="3"/>
+                            </svg>
+                            Plan Your Route
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="m9 18 6-6-6-6"/>
+                            </svg>
+                       <a href="cons.html" style="text-decoration: none;">
+  <button class="btn btn-outline btn-lg">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+      <circle cx="12" cy="10" r="3"/>
+    </svg>
+    Find Route
+  </button>
+</a>
 
-    const messageDiv = document.getElementById('message');
-    const constructionModeInfo = document.getElementById('constructionModeInfo');
-    const customAlert = document.getElementById('customAlert');
-    const customAlertMessage = document.getElementById('customAlertMessage');
-    const btnYes = document.getElementById('btnYes');
-    const btnNo = document.getElementById('btnNo');
+                    </div>
 
-    // Helper: create rectangular polygon (square) around latlng with Turf using given length in meters
-    function createRectPolygon(latlng, lengthMeters) {
-      const halfLenDegLat = (lengthMeters / 2) / 111320;
-      const halfLenDegLng = halfLenDegLat / Math.cos(latlng.lat * Math.PI / 180);
+                    <!-- Trust Indicators -->
+                    <div class="trust-indicators">
+                        <div class="trust-item">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
+                            </svg>
+                            Live Construction Updates
+                        </div>
+                        <div class="trust-item">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+                                <circle cx="12" cy="10" r="3"/>
+                            </svg>
+                            Precise GPS Navigation
+                        </div>
+                        <div class="trust-item">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                                <circle cx="12" cy="10" r="3"/>
+                            </svg>
+                            Optimized Routing
+                        </div>
+                    </div>
+                </div>
 
-      const corners = [
-        [latlng.lng - halfLenDegLng, latlng.lat - halfLenDegLat],
-        [latlng.lng + halfLenDegLng, latlng.lat - halfLenDegLat],
-        [latlng.lng + halfLenDegLng, latlng.lat + halfLenDegLat],
-        [latlng.lng - halfLenDegLng, latlng.lat + halfLenDegLat],
-        [latlng.lng - halfLenDegLng, latlng.lat - halfLenDegLat], // close ring
-      ];
-      return turf.polygon([corners]);
-    }
+                <!-- Stats -->
+                <div class="hero-stats">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value">5K+</div>
+                            <div class="stat-label">Construction Zones Avoided</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">98%</div>
+                            <div class="stat-label">Routing Accuracy</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">24/7</div>
+                            <div class="stat-label">Real-Time Monitoring</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">5min</div>
+                            <div class="stat-label">Average Time Saved</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 
-    function showCustomAlertWithConsent(message, onYes, onNo) {
-      customAlertMessage.innerHTML = message;
-      customAlert.style.display = 'flex';
-      btnYes.onclick = () => {
-        customAlert.style.display = 'none';
-        onYes();
-      };
-      btnNo.onclick = () => {
-        customAlert.style.display = 'none';
-        onNo();
-      };
-    }
+    <!-- Features Section -->
+    <section id="features" class="features">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">
+                    Smart Features for
+                    <span class="gradient-text">Construction-Free Navigation</span>
+                </h2>
+                <p class="section-description">
+                    Our cutting-edge routing technology ensures you bypass construction zones 
+                    with the fastest and safest paths, saving time and reducing stress.
+                </p>
+            </div>
 
-    function clearRouteAndMarkers() {
-      if (routeLayer) map.removeLayer(routeLayer);
-      if (startMarker) map.removeLayer(startMarker);
-      if (endMarker) map.removeLayer(endMarker);
-      routeLayer = startMarker = endMarker = null;
-    }
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+                            <circle cx="12" cy="10" r="3"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Live Construction Tracking</h3>
+                    <p class="feature-description">
+                        Real-time updates on construction zones to keep you informed of the latest road conditions.
+                    </p>
+                </div>
 
-    function distance(latlng1, latlng2) {
-      const R = 6371000;
-      const toRad = deg => deg * Math.PI / 180;
-      const dLat = toRad(latlng2[0] - latlng1[0]);
-      const dLon = toRad(latlng2[1] - latlng1[1]);
-      const lat1 = toRad(latlng1[0]), lat2 = toRad(latlng2[0]);
-      const a = Math.sin(dLat/2)**2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon/2)**2;
-      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    }
+                <div class="feature-card">
+                    <div class="feature-icon accent">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                            <circle cx="12" cy="10" r="3"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Optimized Routing</h3>
+                    <p class="feature-description">
+                        AI-driven algorithms find the shortest path around construction zones for faster travel.
+                    </p>
+                </div>
 
-    // Find constructions near any point on route within threshold (meters)
-    function findNearbyConstructions(routeCoords, threshold = 100) {
-      const near = [];
-      for (const { marker, polygon, note } of constructionMarkers) {
-        const cLatLng = marker.getLatLng();
-        for (const coord of routeCoords) {
-          const dist = distance([coord[0], coord[1]], [cLatLng.lat, cLatLng.lng]);
-          if (dist <= threshold) {
-            near.push(note || "Unnamed construction site");
-            break;
-          }
-        }
-      }
-      return near;
-    }
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12,6 12,12 16,14"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Accurate ETA</h3>
+                    <p class="feature-description">
+                        Precise arrival time estimates factoring in construction delays and traffic conditions.
+                    </p>
+                </div>
 
-    // Load all constructions from Firestore, add markers + polygons on map, store polygons for ORS avoid
-    async function loadConstructionMarkers() {
-      const querySnapshot = await getDocs(collection(db, "constructions"));
+                <div class="feature-card">
+                    <div class="feature-icon accent">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                            <circle cx="12" cy="10" r="3"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Road Closure Alerts</h3>
+                    <p class="feature-description">
+                        Instant notifications about construction-related road closures and potential hazards.
+                    </p>
+                </div>
 
-      // Clear existing
-      constructionMarkers.forEach(obj => {
-        map.removeLayer(obj.marker);
-        if (obj.polygonLayer) map.removeLayer(obj.polygonLayer);
-      });
-      constructionMarkers = [];
-      constructionPolygons = [];
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect width="14" height="20" x="5" y="2" rx="2" ry="2"/>
+                            <path d="M12 18h.01"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Mobile-Optimized</h3>
+                    <p class="feature-description">
+                        Access our routing platform on any device with a seamless, responsive experience.
+                    </p>
+                </div>
 
-      querySnapshot.forEach(doc => {
-        const data = doc.data();
+                <div class="feature-card">
+                    <div class="feature-icon accent">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 3v5h5"/>
+                            <path d="M6 21v-5h5"/>
+                            <path d="M21 3H8.5s-1 0-1 1v5"/>
+                            <path d="M21 21H8.5s-1 0-1-1v-5"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Route Analytics</h3>
+                    <p class="feature-description">
+                        Monitor your travel efficiency, time savings, and construction avoidance patterns.
+                    </p>
+                </div>
+            </div>
 
-        // Create marker icon
-        const icon = L.icon({
-          iconUrl: 'https://cdn-icons-png.flaticon.com/512/126/126549.png',
-          iconSize: [25, 41],
-          iconAnchor: [12, 41],
-          popupAnchor: [1, -34]
-        });
+            <div class="features-cta">
+                <button class="btn btn-cta btn-lg">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                        <circle cx="12" cy="10" r="3"/>
+                    </svg>
+                    Plan Your Route Now
+                </button>
+            </div>
+        </div>
+    </section>
 
-        // Popup content
-        const popupContent = `
-          <strong>Construction Site:</strong> ${data.note}<br>
-          ${data.estimatedFix ? `<strong>Fix ETA:</strong> ${data.estimatedFix}<br>` : ''}
-          ${data.constructionLength ? `<strong>Area Length:</strong> ${data.constructionLength} m<br>` : ''}
-          ${data.altRoute ? `<strong>Alt Route:</strong> ${data.altRoute}<br>` : ''}
-          ${data.extraDetails ? `<strong>Details:</strong> ${data.extraDetails}` : ''}
-        `;
+    <!-- About Section -->
+    <section id="about" class="about">
+        <div class="container">
+            <div class="section-header">
+                <div class="badge">About ClearRoute</div>
+                <h2 class="section-title">
+                    Redefining
+                    <span class="gradient-text">Construction-Free Travel</span>
+                </h2>
+                <p class="section-description">
+                    Created by navigation experts and urban planners, ClearRoute addresses the challenge of construction-related delays with smart, efficient routing solutions for seamless travel.
+                </p>
+            </div>
 
-        // Marker
-        const marker = L.marker([data.lat, data.lng], { icon }).addTo(map).bindPopup(popupContent);
+            <div class="stats-row">
+                <div class="stat-item">
+                    <div class="stat-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+                            <circle cx="12" cy="10" r="3"/>
+                        </svg>
+                    </div>
+                    <div class="stat-value">500K+</div>
+                    <div class="stat-label">Construction Zones Avoided</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-icon accent">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="m22 21-3-3m0 0a5.5 5.5 0 1 0-7.78-7.78 5.5 5.5 0 0 0 7.78 7.78Z"/>
+                        </svg>
+                    </div>
+                    <div class="stat-value">100K+</div>
+                    <div class="stat-label">Active Users</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/>
+                            <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/>
+                            <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/>
+                            <path d="M10 6h4"/>
+                            <path d="M10 10h4"/>
+                            <path d="M10 14h4"/>
+                            <path d="M10 18h4"/>
+                        </svg>
+                    </div>
+                    <div class="stat-value">50+</div>
+                    <div class="stat-label">Cities Covered</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-icon accent">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="8" r="7"/>
+                            <path d="m8.21 13.89 7-7"/>
+                            <path d="M17 8.5V7a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-1.5"/>
+                        </svg>
+                    </div>
+                    <div class="stat-value">99.9%</div>
+                    <div class="stat-label">Uptime Reliability</div>
+                </div>
+            </div>
 
-        // Polygon (avoidance) — if length valid, else default 500m
-        let lengthM = parseFloat(data.constructionLength);
-        if (isNaN(lengthM) || lengthM < 10) lengthM = 500;
-        const polygon = createRectPolygon(marker.getLatLng(), lengthM);
-        const latlngs = polygon.geometry.coordinates[0].map(coord => [coord[1], coord[0]]);
-        const polygonLayer = L.polygon(latlngs, { color: 'orange', fillOpacity: 0.3 }).addTo(map);
+            <div class="mission-card">
+                <div class="mission-content">
+                    <div class="mission-text">
+                        <h3 class="mission-title">Our Mission</h3>
+                        <p class="mission-description">
+                            To simplify travel by providing real-time, optimized routes that avoid construction zones, ensuring faster and safer journeys for all.
+                        </p>
+                        <div class="mission-points">
+                            <div class="mission-point">
+                                <div class="point-dot primary"></div>
+                                <span>Live construction zone data</span>
+                            </div>
+                            <div class="mission-point">
+                                <div class="point-dot accent"></div>
+                                <span>AI-optimized routing</span>
+                            </div>
+                            <div class="mission-point">
+                                <div class="point-dot primary"></div>
+                                <span>Community-driven road alerts</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mission-visual">
+                        <div class="mission-icon">
+                            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+                                <circle cx="12" cy="10" r="3"/>
+                            </svg>
+                        </div>
+                        <h4 class="mission-visual-title">Designed for All Travelers</h4>
+                        <p class="mission-visual-text">
+                            From commuters to logistics teams, ClearRoute empowers everyone with efficient navigation around construction zones.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 
-        constructionMarkers.push({ marker, polygon, polygonLayer, note: data.note });
-        constructionPolygons.push(polygon);
-      });
-    }
+    <!-- Contact Section -->
+    <section id="contact" class="contact">
+        <div class="container">
+            <div class="section-header">
+                <div class="badge">Get In Touch</div>
+                <h2 class="section-title">
+                    Ready to Navigate
+                    <span class="gradient-text">Smarter?</span>
+                </h2>
+                <p class="section-description">
+                    Have questions about ClearRoute? Need customized routing solutions? 
+                    Contact us to optimize your travel experience.
+                </p>
+            </div>
 
-    // Geocode with Nominatim
-    async function geocode(query) {
-      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`;
-      const res = await fetch(url, { headers: {'Accept-Language': 'en'} });
-      if (!res.ok) throw new Error('Geocoding error');
-      const results = await res.json();
-      if (!results.length) throw new Error('Location not found: ' + query);
-      return { lat: parseFloat(results[0].lat), lon: parseFloat(results[0].lon), display_name: results[0].display_name };
-    }
+            <div class="contact-grid">
+                <!-- Contact Information -->
+                <div class="contact-info">
+                    <h3 class="contact-info-title">Contact Information</h3>
+                    <div class="contact-items">
+                        <div class="contact-item">
+                            <div class="contact-icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                                    <polyline points="22,6 12,13 2,6"/>
+                                </svg>
+                            </div>
+                            <div class="contact-details">
+                                <h4 class="contact-title">Email Us</h4>
+                                <p class="contact-content">support@clearroute.io</p>
+                                <p class="contact-description">Reach out for support or partnerships</p>
+                            </div>
+                        </div>
 
-    // Basic OSRM routing (no avoidance)
-    async function getRoute(start, end) {
-      const url = `https://router.project-osrm.org/route/v1/driving/${start.lon},${start.lat};${end.lon},${end.lat}?overview=full&geometries=geojson`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('Routing error');
-      const data = await res.json();
-      if (!data.routes.length) throw new Error('No route found');
-      return data.routes[0];
-    }
+                        <div class="contact-item">
+                            <div class="contact-icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                                </svg>
+                            </div>
+                            <div class="contact-details">
+                                <h4 class="contact-title">Call Us</h4>
+                                <p class="contact-content">+1 (555) 987-6543</p>
+                                <p class="contact-description">Mon-Fri 9AM-6PM EST</p>
+                            </div>
+                        </div>
 
-    // ORS routing with avoidance polygons
-    async function getRouteAvoidingPolygons(start, end, avoidPolygons) {
-      const avoidGeoJson = {
-        type: "MultiPolygon",
-        coordinates: avoidPolygons.map(p => p.geometry.coordinates)
-      };
+                        <div class="contact-item">
+                            <div class="contact-icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+                                    <circle cx="12" cy="10" r="3"/>
+                                </svg>
+                            </div>
+                            <div class="contact-details">
+                                <h4 class="contact-title">Visit Us</h4>
+                                <p class="contact-content">queens NY USA</p>
+                                <p class="contact-description">Our headquarters in the heart of the city</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-      const url = 'https://api.openrouteservice.org/v2/directions/driving-car/geojson';
+                <!-- Contact Form -->
+                <div class="contact-form">
+                    <div class="form-card">
+                        <div class="form-header">
+                            <h3 class="form-title">Send us a Message</h3>
+                            <p class="form-description">
+                                Fill out the form below and we'll respond within 24 hours.
+                            </p>
+                        </div>
+                        <form class="form" id="contact-form">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">First Name</label>
+                                    <input type="text" class="form-input" placeholder="John" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Last Name</label>
+                                    <input type="text" class="form-input" placeholder="Doe" required>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-input" placeholder="john@example.com" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Subject</label>
+                                <input type="text" class="form-input" placeholder="How can we assist with your routing needs?" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Message</label>
+                                <textarea class="form-textarea" placeholder="Tell us about your routing inquiry..." required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-cta btn-lg btn-full">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="m22 2-7 20-4-9-9-4Z"/>
+                                    <path d="M22 2 11 13"/>
+                                </svg>
+                                Send Message
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 
-      const body = {
-        coordinates: [[start.lon, start.lat], [end.lon, end.lat]],
-        options: {
-          avoid_polygons: avoidGeoJson
-        }
-      };
+    <script>
+        // Mobile menu functionality
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const mobileNav = document.getElementById('mobile-nav');
+        const menuIcon = document.getElementById('menu-icon');
+        const closeIcon = document.getElementById('close-icon');
 
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Authorization': ORS_API_KEY,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(body)
-      });
+        let isMenuOpen = false;
 
-      if (!res.ok) {
-        const errText = await res.text();
-        throw new Error('ORS routing error: ' + errText);
-      }
-
-      const data = await res.json();
-
-      if (!data.features || !data.features.length) throw new Error('No route found');
-
-      return data.features[0].geometry;
-    }
-
-    // Display route on map given GeoJSON geometry
-    function displayRoute(geojson) {
-      if (routeLayer) map.removeLayer(routeLayer);
-      routeLayer = L.geoJSON(geojson, {
-        style: { color: 'blue', weight: 5 }
-      }).addTo(map);
-      map.fitBounds(routeLayer.getBounds());
-    }
-
-    // Main routing logic
-    async function routeAndCheck() {
-      const startInput = document.getElementById('start').value.trim();
-      const endInput = document.getElementById('end').value.trim();
-      if (!startInput || !endInput) {
-        messageDiv.style.color = 'red';
-        messageDiv.textContent = 'Enter both start and end locations.';
-        return;
-      }
-
-      try {
-        messageDiv.style.color = '#202124';
-        messageDiv.textContent = 'Processing...';
-
-        // Load constructions fresh
-        await loadConstructionMarkers();
-
-        const [start, end] = await Promise.all([geocode(startInput), geocode(endInput)]);
-
-        clearRouteAndMarkers();
-
-        startMarker = L.marker([start.lat, start.lon]).addTo(map).bindPopup(`Start: ${start.display_name}`).openPopup();
-        endMarker = L.marker([end.lat, end.lon]).addTo(map).bindPopup(`End: ${end.display_name}`).openPopup();
-
-        // Get default route first
-        const route = await getRoute(start, end);
-        const coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
-
-        // Find nearby constructions within 100m threshold
-        const nearbyNotes = findNearbyConstructions(coords, 100);
-
-        if (nearbyNotes.length > 0 && constructionPolygons.length > 0) {
-          // Show alert and ask user for consent to avoid constructions
-          showCustomAlertWithConsent(
-            `⚠ Route is near ${nearbyNotes.length} construction site(s):<br><br>` +
-            nearbyNotes.map((n, i) => `${i + 1}. ${n}`).join("<br>") +
-            `<br><br>Would you like to get a route avoiding these construction areas?`,
-            async () => { // On Yes: route avoiding polygons
-              messageDiv.textContent = 'Calculating route avoiding construction sites...';
-              try {
-                const avoidedGeoJson = await getRouteAvoidingPolygons(start, end, constructionPolygons);
-                displayRoute(avoidedGeoJson);
-                messageDiv.style.color = 'green';
-                messageDiv.textContent = 'Route avoiding construction sites displayed!';
-              } catch(e) {
-                messageDiv.style.color = 'red';
-                messageDiv.textContent = 'Error with avoided route: ' + e.message;
-                // fallback to original route:
-                displayRoute(route.geometry);
-              }
-            },
-            () => { // On No: show original route
-              displayRoute(route.geometry);
-              messageDiv.style.color = 'green';
-              messageDiv.textContent = 'Original route displayed.';
+        mobileMenuBtn.addEventListener('click', () => {
+            isMenuOpen = !isMenuOpen;
+            
+            if (isMenuOpen) {
+                mobileNav.classList.add('active');
+                menuIcon.style.display = 'none';
+                closeIcon.style.display = 'block';
+            } else {
+                mobileNav.classList.remove('active');
+                menuIcon.style.display = 'block';
+                closeIcon.style.display = 'none';
             }
-          );
-        } else {
-          // No nearby constructions, just show route
-          displayRoute(route.geometry);
-          messageDiv.style.color = 'green';
-          messageDiv.textContent = 'Route displayed!';
-        }
-      } catch (err) {
-        messageDiv.style.color = 'red';
-        messageDiv.textContent = 'Error: ' + err.message;
-      }
-    }
-
-    // Event listeners and UI handlers
-
-    document.getElementById('routeBtn').addEventListener('click', routeAndCheck);
-
-    document.getElementById('toggleConstructionBtn').addEventListener('click', () => {
-      constructionMode = !constructionMode;
-      constructionModeInfo.style.display = constructionMode ? 'inline' : 'none';
-      map.getContainer().classList.toggle('construction-mode', constructionMode);
-      messageDiv.style.color = constructionMode ? 'orange' : 'black';
-      messageDiv.textContent = constructionMode
-        ? 'Construction mode enabled: Click map to add construction sites.'
-        : 'Construction mode disabled.';
-    });
-
-    map.on('click', function (e) {
-      if (!constructionMode) return;
-      clickedLatLng = e.latlng;
-      document.getElementById('noteModal').style.display = 'flex';
-    });
-
-    // Construction note modal controls
-    document.getElementById('noteModalClose').onclick = () => {
-      document.getElementById('noteModal').style.display = 'none';
-    };
-
-    document.getElementById('saveNoteBtn').onclick = async () => {
-      const note = document.getElementById('noteInput').value.trim();
-      const estimatedFix = document.getElementById('estimatedFix').value.trim();
-      let constructionLength = document.getElementById('constructionLength').value.trim();
-      const altRoute = document.getElementById('altRoute').value.trim();
-      const extraDetails = document.getElementById('extraDetails').value.trim();
-
-      if (!note) {
-        messageDiv.style.color = 'red';
-        messageDiv.textContent = 'Construction site note is required.';
-        return;
-      }
-
-      // Validate constructionLength, set default if invalid
-      let lengthNum = parseFloat(constructionLength);
-      if (isNaN(lengthNum) || lengthNum < 10) {
-        lengthNum = 500;
-        constructionLength = '500';
-      }
-
-      try {
-        await addDoc(collection(db, "constructions"), {
-          lat: clickedLatLng.lat,
-          lng: clickedLatLng.lng,
-          note,
-          estimatedFix,
-          constructionLength,
-          altRoute,
-          extraDetails
         });
 
-        document.getElementById('noteModal').style.display = 'none';
-        document.getElementById('noteInput').value = '';
-        document.getElementById('estimatedFix').value = '';
-        document.getElementById('constructionLength').value = '';
-        document.getElementById('altRoute').value = '';
-        document.getElementById('extraDetails').value = '';
-
-        await loadConstructionMarkers();
-        messageDiv.style.color = 'green';
-        messageDiv.textContent = 'Construction site added.';
-      } catch (err) {
-        messageDiv.style.color = 'red';
-        messageDiv.textContent = 'Error saving to Firestore: ' + err.message;
-      }
-    };
-
-    // Initial load of construction markers
-    loadConstructionMarkers();
-
-    // On map ready, alert if constructions near center
-    map.whenReady(() => {
-      setTimeout(() => {
-        const center = map.getCenter();
-        const nearConstructions = constructionMarkers.filter(({ marker }) => {
-          return distance([marker.getLatLng().lat, marker.getLatLng().lng], [center.lat, center.lng]) < 300;
+        // Close mobile menu when clicking on navigation links
+        const mobileNavLinks = mobileNav.querySelectorAll('.nav-link');
+        mobileNavLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                isMenuOpen = false;
+                mobileNav.classList.remove('active');
+                menuIcon.style.display = 'block';
+                closeIcon.style.display = 'none';
+            });
         });
 
-        if (nearConstructions.length > 0) {
-          showCustomAlert(
-            `⚠ Warning: There are ${nearConstructions.length} construction site(s) near this area.<br><br>` +
-            nearConstructions.map(({ note }, i) => `${i + 1}. ${note || "Unnamed construction site"}`).join("<br>")
-          );
+        // Get Route button functionality
+        const getRouteBtn = document.getElementById('get-route-btn');
+        getRouteBtn.addEventListener('click', () => {
+            console.log('Plan Route button clicked');
+            alert('Route planning feature coming soon!');
+        });
+
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Header background on scroll
+        const header = document.getElementById('header');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 100) {
+                header.style.background = 'rgba(255, 255, 255, 0.98)';
+            } else {
+                header.style.background = 'rgba(255, 255, 255, 0.95)';
+            }
+        });
+
+        // Form submission
+        const contactForm = document.getElementById('contact-form');
+        contactForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            // Get form data
+            const formData = new FormData(contactForm);
+            const inputs = contactForm.querySelectorAll('input, textarea');
+            const data = {};
+            
+            inputs.forEach(input => {
+                if (input.type !== 'submit') {
+                    data[input.placeholder || input.name] = input.value;
+                }
+            });
+            
+            // Simple validation
+            const requiredFields = contactForm.querySelectorAll('[required]');
+            let isValid = true;
+            
+            requiredFields.forEach(field => {
+                if (!field.value.trim()) {
+                    isValid = false;
+                    field.style.borderColor = 'var(--primary)';
+                } else {
+                    field.style.borderColor = 'var(--border)';
+                }
+            });
+            
+            if (!isValid) {
+                alert('Please fill in all required fields');
+                return;
+            }
+            
+            const emailField = contactForm.querySelector('input[type="email"]');
+            if (!isValidEmail(emailField.value)) {
+                alert('Please enter a valid email address');
+                emailField.style.borderColor = 'var(--primary)';
+                return;
+            }
+            
+            // Simulate form submission
+            console.log('Form submitted:', data);
+            
+            alert("Thank you for your message! We'll get back to you within 24 hours.");
+            contactForm.reset();
+        });
+
+        // Email validation helper
+        function isValidEmail(email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
         }
-      }, 1500);
-    });
-  </script>
+
+        // Add intersection observer for animations
+        const observeElements = document.querySelectorAll('.feature-card, .stat-item, .contact-item');
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        });
+
+        // Initially hide elements and observe them
+        observeElements.forEach(el => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(20px)';
+            el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+            observer.observe(el);
+        });
+
+        // Add click animations to buttons
+        document.querySelectorAll('.btn').forEach(button => {
+            button.addEventListener('click', function(e) {
+                // Create ripple effect
+                const ripple = document.createElement('span');
+                const rect = this.getBoundingClientRect();
+                const size = Math.max(rect.width, rect.height);
+                const x = e.clientX - rect.left - size / 2;
+                const y = e.clientY - rect.top - size / 2;
+                
+                ripple.style.cssText = `
+                    position: absolute;
+                    width: ${size}px;
+                    height: ${size}px;
+                    left: ${x}px;
+                    top: ${y}px;
+                    background: rgba(255, 255, 255, 0.3);
+                    border-radius: 50%;
+                    transform: scale(0);
+                    animation: ripple 0.6s linear;
+                    pointer-events: none;
+                `;
+                
+                this.style.position = 'relative';
+                this.style.overflow = 'hidden';
+                this.appendChild(ripple);
+                
+                setTimeout(() => {
+                    ripple.remove();
+                }, 600);
+            });
+        });
+    </script>
 </body>
 </html>

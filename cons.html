@@ -205,6 +205,28 @@
       cursor: pointer;
       margin-top: 12px;
     }
+#noteModalBox input,
+  #noteModalBox textarea {
+    width: 100%;
+    padding: 10px;
+    margin: 8px 0;
+    box-sizing: border-box;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+  }
+
+  /* Specific fix in case the number input behaves differently */
+  #constructionLength {
+    appearance: textfield; /* Removes number spinner in some browsers */
+  }
+
+  /* Optional: remove spin buttons for Chrome, Safari, Edge */
+  #constructionLength::-webkit-outer-spin-button,
+  #constructionLength::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
   </style>
 </head>
 
@@ -627,8 +649,8 @@
         }
       }, 1500);
     });
-window.deleteConstruction = async function(docId) {
-    if (!confirm("Are you sure that this construction is over?")) return;
+window.deleteConstruction = function(docId) {
+  showCustomConfirm("✅ Are you sure this construction is over?", async () => {
     try {
       const { deleteDoc, doc: docRef } = await import("https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js");
       await deleteDoc(docRef(db, "constructions", docId));
@@ -639,7 +661,31 @@ window.deleteConstruction = async function(docId) {
       document.getElementById('message').style.color = 'red';
       document.getElementById('message').textContent = 'Error removing site: ' + err.message;
     }
-  }
+  });
+};
+function showCustomConfirm(message, onYes, onNo) {
+  customAlertMessage.innerHTML = message;
+  customAlert.style.display = 'flex';
+
+  // Customize button labels
+  btnYes.textContent = "Yes";
+  btnNo.textContent = "Cancel";
+
+  btnYes.onclick = () => {
+    customAlert.style.display = 'none';
+    btnYes.textContent = "Avoid Construction"; // reset for other alerts
+    btnNo.textContent = "Show Original Route";
+    onYes();
+  };
+
+  btnNo.onclick = () => {
+    customAlert.style.display = 'none';
+    btnYes.textContent = "Avoid Construction"; // reset
+    btnNo.textContent = "Show Original Route";
+    if (onNo) onNo();
+  };
+}
+
   </script>
 </body>
 </html>

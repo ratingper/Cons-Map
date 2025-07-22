@@ -963,56 +963,52 @@
 <body>
     <!-- Header -->
 <header id="header" class="header">
-    <div class="container">
-        <div class="header-content">
-            <!-- Logo -->
-            <a href="index.html" class="logo" style="text-decoration: none; color: inherit;">
-                <img src="clearroute.png" alt="ClearRoute Logo" width="30" height="24" style="vertical-align: middle;" />
-                <span class="logo-text">ClearRoute</span>
-            </a>
-        </div>
+  <div class="container">
+    <div class="header-content">
+      <!-- Logo -->
+      <a href="index.html" class="logo" style="text-decoration: none; color: inherit;">
+        <img src="clearroute.png" alt="ClearRoute Logo" width="30" height="24" style="vertical-align: middle;" />
+        <span class="logo-text">ClearRoute</span>
+      </a>
+
+      <!-- Desktop Navigation -->
+      <nav class="nav-desktop">
+        <a href="#features" class="nav-link">Features</a>
+        <a href="#about" class="nav-link">About</a>
+        <a href="#contact" class="nav-link">Contact</a>
+        
+        <button class="btn btn-primary btn-sm">Get Started</button>
+      </nav>
+
+      <!-- Mobile Menu Button -->
+      <button class="mobile-menu-btn" id="mobile-menu-btn">
+        <svg id="menu-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="4" x2="20" y1="6" y2="6"/>
+          <line x1="4" x2="20" y1="12" y2="12"/>
+          <line x1="4" x2="20" y1="18" y2="18"/>
+        </svg>
+        <svg id="close-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+          <path d="m18 6-12 12"/>
+          <path d="m6 6 12 12"/>
+        </svg>
+      </button>
     </div>
+  </div>
+
+  <!-- Mobile Navigation -->
+  <div class="nav-mobile" id="mobile-nav" style="display: none;">
+    <nav class="nav-mobile-content">
+      <a href="#features" class="nav-link">Features</a>
+      <a href="#about" class="nav-link">About</a>
+      <a href="#contact" class="nav-link">Contact</a>
+      <div class="nav-mobile-buttons">
+        <button class="btn btn-outline btn-sm">Sign In</button>
+        <button class="btn btn-primary btn-sm">Get Started</button>
+      </div>
+    </nav>
+  </div>
 </header>
 
-
-
-                <!-- Desktop Navigation -->
-                <nav class="nav-desktop">
-                    <a href="#features" class="nav-link">Features</a>
-                    <a href="#about" class="nav-link">About</a>
-                    <a href="#contact" class="nav-link">Contact</a>
-                    <button class="btn btn-outline btn-sm">Sign In</button>
-                    <button class="btn btn-primary btn-sm">Get Started</button>
-                </nav>
-
-                <!-- Mobile Menu Button -->
-                <button class="mobile-menu-btn" id="mobile-menu-btn">
-                    <svg id="menu-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="4" x2="20" y1="6" y2="6"/>
-                        <line x1="4" x2="20" y1="12" y2="12"/>
-                        <line x1="4" x2="20" y1="18" y2="18"/>
-                    </svg>
-                    <svg id="close-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
-                        <path d="m18 6-12 12"/>
-                        <path d="m6 6 12 12"/>
-                    </svg>
-                </button>
-            </div>
-
-            <!-- Mobile Navigation -->
-            <div class="nav-mobile" id="mobile-nav">
-                <nav class="nav-mobile-content">
-                    <a href="#features" class="nav-link">Features</a>
-                    <a href="#about" class="nav-link">About</a>
-                    <a href="#contact" class="nav-link">Contact</a>
-                    <div class="nav-mobile-buttons">
-                        <button class="btn btn-outline btn-sm">Sign In</button>
-                        <button class="btn btn-primary btn-sm">Get Started</button>
-                    </div>
-                </nav>
-            </div>
-        </div>
-    </header>
 
     <!-- Hero Section -->
     <section class="hero">
